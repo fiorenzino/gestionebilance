@@ -1,0 +1,115 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<project name="gestione-bilance" default="build" basedir=".">
+	<description>gestione-bilance</description>
+	<property file="${basedir}/build.properties" />
+	<property name="src.dir" location="src" />
+
+	<property name="dd.dir" location="dd" />
+	<property name="build" location="build" />
+	<property name="build.dir" location="build/code" />
+	<property name="bundle" location="bundle" />
+	<property name="buildjar.dir" location="build/jars" />
+	<property name="build.classes.dir" value="${build.dir}" />
+	<property name="build.classes.test.dir" value="${build}/test" />
+	<property name="ear.dir" value="${build}/${ant.project.name}.ear/" />
+	<property name="war.dir" value="${build}/${ant.project.name}.war/" />
+	<property name="ejb3.dir" value="${build}/${ant.project.name}_ejb3.jar/" />
+	<property name="par.dir" value="${build}/${ant.project.name}_par.jar/" />
+
+	<property name="war.classes.dir" value="${war.dir}/WEB-INF/classes" />
+	<property name="lib.dir" location="lib" />
+
+	<property name="jboss.deploy.dir" location="${jboss.home}/server/${jboss.server}/deploy" />
+	<property name="jboss.conf.dir" location="${jboss.home}/server/${jboss.server}/conf" />
+
+	<path id="compile.path">
+		<pathelement location="${build.classes.dir}" />
+		<pathelement location="${build.classes.test.dir}" />
+		<fileset dir="${lib.dir}" includes="*.jar" />
+		<fileset dir="${jboss.home}/client" includes="*.jar" />
+		<fileset dir="${jboss.home}/server/${jboss.server}/lib" includes="*.jar" />
+		<fileset dir="${jboss.home}/server/${jboss.server}/deploy/ejb3.deployer" includes="*.jar" />
+
+		<!-- for aop only -->
+		<fileset dir="${jboss.home}/server/${jboss.server}/deploy/jboss-aop-jdk50.deployer" includes="*.jar" />
+	</path>
+
+	<target name="clean">
+		<delete dir="${build.dir}" />
+		<delete dir="${buildjar.dir}" />
+		<delete dir="build" />
+	</target>
+
+	<target name="build" depends="compile">
+	</target>
+
+	<target name="compile">
+		<mkdir dir="${build.dir}" />
+		<javac destdir="${build.dir}" classpathref="compile.path" debug="true">
+			<src path="${src.dir}" />
+		</javac>
+	</target>
+
+	<target name="compile-Client">
+		<javac srcdir="${src.dir}" destdir="${build.classes.dir}" debug="on" deprecation="on" optimize="off" includes="**">
+			<classpath refid="compile.path" />
+			<include name="**/client**" />
+			<exclude name="**/fax**" />
+		</javac>
+		<copy file="${src.dir}/jndi.properties" todir="${build.classes.dir}" />
+	</target>
+
+
+	<target name="jmxjar" depends="build">
+		<mkdir dir="${buildjar.dir}" />
+		<jar destfile="${buildjar.dir}/${ant.project.name}.jar">
+			<fileset dir="${build.dir}">
+				<include name="**/jmx/**/*.class" />
+				<exclude name="**/remoting/**/*.class" />
+			</fileset>
+		</jar>
+	</target>
+
+	<target name="exportJAR" depends="build">
+		<mkdir dir="${buildjar.dir}" />
+		<jar destfile="${buildjar.dir}/${ant.project.name}Lib.jar">
+			<fileset dir="${build.dir}">
+				<include name="**/ejb3/FaxDBManagerRemote.class" />
+				<include name="**/ejb3/FaxSession.class" />
+				<include name="**/ejb3/LogManager.class" />
+				<include name="**/par/Fax.class" />
+				<include name="**/par/CercaParola.class" />
+			</fileset>
+		</jar>
+	</target>
+	<target name="sar" depends="compile">
+		<jar destfile="${buildjar.dir}/${ant.project.name}.sar">
+			<metainf dir="dd/sar">
+				<include name="jboss-service.xml" />
+			</metainf>
+			<fileset dir="${build.dir}">
+				<include name="**/remoting/**/*.class" />
+			</fileset>
+		</jar>
+	</target>
+	<target name="ear" depends="jmxjar,sar">
+		<ear destfile="${buildjar.dir}/${ant.project.name}.ear" appxml="dd/ear/application.xml">
+			<fileset dir="${buildjar.dir}" includes="*.jar, *.sar" excludes="*.war" />
+		</ear>
+	</target>
+	<target name="runText">
+		<java classname="it.coopservice.client.ClientSLSBTextSend" fork="yes">
+			<classpath refid="compile.path" />
+		</java>
+	</target>
+
+
+	<target name="deploy-sar" depends="sar">
+		<copy file="${buildjar.dir}/${ant.project.name}.sar" todir="${jboss.deploy.dir}" />
+	</target>
+
+	<target name="deploy" depends="clean, jmxjar, ear, deploy-sar">
+		<copy file="${buildjar.dir}/${ant.project.name}.ear" todir="${jboss.deploy.dir}" />
+	</target>
+</project>

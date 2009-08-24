@@ -25,6 +25,7 @@
 				</invoker>
 				<handlers>
 					<handler subsystem="leggiDispositivo">it.comear.jmx.remoting.leggiDispositivoHandler</handler>
+					<handler subsystem="restartBilance">it.comear.jmx.remoting.restartBilanceHandler</handler>
 					<handler subsystem="secondo">it.comear.jmx.remoting.SecondoHandler</handler>
 				</handlers>
 			</config>
